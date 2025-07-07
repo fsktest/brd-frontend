@@ -1,10 +1,23 @@
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+
+import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type LoginFormProps = React.ComponentProps<"div"> & {
   onLogin: (email: string, password: string) => void;
 };
 
-export function LoginForm({ className, onLogin, ...props }: LoginFormProps) {
+export function LoginForm({ className, onLogin }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 

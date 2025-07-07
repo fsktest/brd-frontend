@@ -7,7 +7,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "./ui/button";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Input } from "./ui/input";
 
 const defaultOutput = {
@@ -198,7 +198,7 @@ const ChatModal = ({ triggerTitle, onStoryGenerated }: ChatModalProps) => {
           </Button>
           <Button
             variant="outline"
-            disabled={!output.summary}
+            disabled={output.length === 0}
             onClick={() => alert("Import to Jira functionality goes here")}
           >
             Import it to your Jira account
