@@ -4,7 +4,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   flexRender,
-  ColumnDef,
+  type ColumnDef,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import LoadingSpinner from "./LoadingSpinner";
 
 export type Project = {
   id: string;
@@ -104,11 +105,13 @@ export default function ProjectTable({ data, isLoading }: ProjectTableProps) {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-center py-10"
-                >
-                  Loading projects...
+                <TableCell colSpan={columns.length}>
+                  <div className="flex flex-row items-center justify-center py-10 gap-2">
+                    <LoadingSpinner size={24} />
+                    <h2 className="text-sm text-muted-foreground">
+                      Loading Projects
+                    </h2>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : data.length ? (

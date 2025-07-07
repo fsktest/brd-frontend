@@ -17,6 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 // --- Type Definitions ---
 type Story = {
@@ -34,6 +35,7 @@ export default function BulkUpload() {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isStories, setIsStories] = useState<Group[]>([]);
+  const [uploadLoading, setUploadLoading] = useState(false);
   const [selectedStories, setSelectedStories] = useState<
     { title: string; group: string }[]
   >([]);
@@ -64,10 +66,13 @@ export default function BulkUpload() {
   const handleUpload = async () => {
     if (!selectedFile) return;
     try {
+      setUploadLoading(true);
       const parsed = await parseStoriesFromExcel(selectedFile);
       setIsStories(parsed);
     } catch (err) {
       console.error("Failed to parse Excel file:", err);
+    } finally {
+      setUploadLoading(false);
     }
   };
 
@@ -193,8 +198,15 @@ export default function BulkUpload() {
           <span className="text-sm text-gray-700 truncate">
             📄 {selectedFile.name}
           </span>
-          <Button size="sm" onClick={handleUpload}>
-            Upload
+          <Button size="sm" disabled={uploadLoading} onClick={handleUpload}>
+            {uploadLoading ? (
+              <span className="flex items-center gap-2">
+                <LoadingSpinner size={16} />
+                Uploading...
+              </span>
+            ) : (
+              "Upload"
+            )}
           </Button>
         </div>
       )}
