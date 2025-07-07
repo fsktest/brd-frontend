@@ -18,10 +18,22 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// --- Type Definitions ---
+type Story = {
+  title: string;
+  description?: string;
+  [key: string]: any;
+};
+
+type Group = {
+  application: string;
+  stories: Story[];
+};
+
 export default function BulkUpload() {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isStories, setIsStories] = useState<any[]>([]);
+  const [isStories, setIsStories] = useState<Group[]>([]);
   const [selectedStories, setSelectedStories] = useState<
     { title: string; group: string }[]
   >([]);
@@ -59,7 +71,7 @@ export default function BulkUpload() {
     }
   };
 
-  const handleStorySelect = (story, group) => {
+  const handleStorySelect = (story: Story, group: Group) => {
     const exists = selectedStories.find(
       (s) => s.title === story.title && s.group === group.application
     );
@@ -72,7 +84,7 @@ export default function BulkUpload() {
     );
   };
 
-  const isSelected = (story, group) =>
+  const isSelected = (story: Story, group: Group) =>
     selectedStories.some(
       (s) => s.title === story.title && s.group === group.application
     );
@@ -190,7 +202,7 @@ export default function BulkUpload() {
       {isStories.length > 0 && (
         <div className="mt-8 w-full">
           <div className="flex items-center gap-4 mb-4 flex-wrap">
-            {/* Filter Dropdown with Search */}
+            {/* Project Dropdown */}
             <div className="w-64">
               <Select onValueChange={setSelectedProject} defaultValue="all">
                 <Tooltip>
@@ -210,18 +222,15 @@ export default function BulkUpload() {
                 </Tooltip>
 
                 <SelectContent className="w-[30rem]">
-                  {/* Search bar always visible */}
                   <div className="p-2 sticky top-0 z-10 bg-white">
                     <Input
                       type="text"
                       value={projectSearch}
                       placeholder="Search project..."
-                      className="w-full focus:ring-0 "
+                      className="w-full focus:ring-0"
                       onChange={(e) => setProjectSearch(e.target.value)}
                     />
                   </div>
-
-                  {/* Scrollable project list */}
                   <div className="max-h-60 overflow-y-auto">
                     <SelectItem value="all" className="truncate">
                       All Projects
@@ -240,7 +249,7 @@ export default function BulkUpload() {
               </Select>
             </div>
 
-            {/* Story Search Input */}
+            {/* Story Search */}
             <div className="w-64">
               <Input
                 type="text"

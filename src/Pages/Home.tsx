@@ -15,6 +15,21 @@ export type Project = {
   };
 };
 
+type JiraResource = {
+  id: string;
+  name: string;
+  url: string;
+  scopes: string[];
+  avatarUrl: string;
+};
+
+type Metric = {
+  title: string;
+  value: string | number;
+  change?: string;
+  trend?: "up" | "down" | "";
+};
+
 const Home = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [CLOUDID, setCLOUDID] = useState<string | null>(null);
@@ -50,8 +65,8 @@ const Home = () => {
           throw new Error("Token expired or invalid");
         }
 
-        const resources = await res.json();
-        const current = resources.find((r: any) => r.id === cloudid);
+        const resources: JiraResource[] = await res.json();
+        const current = resources.find((r) => r.id === cloudid);
 
         if (current) {
           setJiraAccessToken(token);
@@ -73,6 +88,7 @@ const Home = () => {
     validateJiraToken();
   }, []);
 
+  // ✅ Fetch Jira Projects
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -108,30 +124,26 @@ const Home = () => {
     window.location.href = `${API_BASE_URL}/jira-connect`;
   };
 
-  const metrics = [
+  const metrics: Metric[] = [
     {
       title: "Total Projects",
-      value: "147",
-      change: "+12 this week",
-      value: projects?.length,
-      change: "",
-      trend: "",
+      value: projects.length,
     },
     {
       title: "Completed Stories",
-      value: "89",
+      value: 89,
       change: "+8 this week",
       trend: "up",
     },
     {
       title: "In Progress",
-      value: "34",
+      value: 34,
       change: "+4 this week",
       trend: "up",
     },
     {
       title: "Story Points",
-      value: "423",
+      value: 423,
       change: "+45 this sprint",
       trend: "up",
     },

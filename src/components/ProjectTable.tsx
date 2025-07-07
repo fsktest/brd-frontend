@@ -4,6 +4,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   flexRender,
+  ColumnDef,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -24,20 +25,20 @@ export type Project = {
   avatarUrls: { ["16x16"]: string };
 };
 
-export default function ProjectTable({
-  data,
-  isLoading,
-}: {
+interface ProjectTableProps {
   data: Project[];
   isLoading: boolean;
-}) {
-  const columns = React.useMemo(
+}
+
+export default function ProjectTable({ data, isLoading }: ProjectTableProps) {
+  const columns = React.useMemo<ColumnDef<Project>[]>(
     () => [
       {
         accessorKey: "name",
         header: "Project Name",
-        cell: ({ row }: any) => {
-          const avatar = row.original.avatarUrls?.["16x16"];
+        cell: ({ row }) => {
+          const project = row.original;
+          const avatar = project.avatarUrls?.["16x16"];
           return (
             <div className="flex items-center gap-2 font-medium">
               {avatar && (
@@ -49,7 +50,7 @@ export default function ProjectTable({
                   className="rounded-sm"
                 />
               )}
-              {row.getValue("name")}
+              {project.name}
             </div>
           );
         },
@@ -65,8 +66,8 @@ export default function ProjectTable({
       {
         accessorKey: "projectTypeKey",
         header: "Type",
-        cell: ({ row }: any) => (
-          <span className="capitalize">{row.getValue("projectTypeKey")}</span>
+        cell: ({ row }) => (
+          <span className="capitalize">{row.original.projectTypeKey}</span>
         ),
       },
     ],
@@ -88,7 +89,7 @@ export default function ProjectTable({
             {table.getHeaderGroups().map((group) => (
               <TableRow key={group.id}>
                 {group.headers.map((header) => (
-                  <TableHead className="text-white" key={header.id}>
+                  <TableHead key={header.id} className="text-white">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -139,7 +140,7 @@ export default function ProjectTable({
 
       <div className="flex justify-between items-center pt-4">
         <div className="text-sm text-muted-foreground">
-          Total project{data.length !== 1 ? "s" : ""} {data.length}
+          Total project{data.length !== 1 ? "s" : ""}: {data.length}
         </div>
         <div className="space-x-2">
           <Button
