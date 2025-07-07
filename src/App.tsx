@@ -7,7 +7,6 @@ import Home from "./Pages/Home";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import "./index.css";
-import Stories from "./Pages/Stories";
 import JiraSuccess from "./Pages/JiraSuccess";
 import BulkUpload from "./Pages/BulkUpload";
 
@@ -31,7 +30,7 @@ const App = () => {
         <Route index element={<Home />} />
         <Route path="/issue" element={<Issue />} />
         <Route path="/bulk-upload" element={<BulkUpload />} />
-        <Route path="/stories" element={<Stories />} />
+        {/* <Route path="/stories" element={<Stories />} /> */}
         <Route path="/jira-success" element={<JiraSuccess />} />
       </Route>
       <Route path="/login" element={<Login />} />

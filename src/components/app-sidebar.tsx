@@ -35,10 +35,10 @@ const data = {
           title: "Bulk Upload",
           url: "/bulk-upload",
         },
-        {
-          title: "Create Stories",
-          url: "/stories",
-        },
+        // {
+        //   title: "Create Stories",
+        //   url: "/stories",
+        // },
       ],
     },
   ],
