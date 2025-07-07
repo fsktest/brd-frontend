@@ -93,10 +93,11 @@ export const parseStoriesFromExcel = async (
         resolve(result);
       } catch (err) {
         reject("File could not be parsed. Ensure it's a valid CSV/XLSX.");
+        console.error("Parsing error:", err);
       }
     };
 
-    reader.onerror = (err) => reject("Failed to read file.");
+    reader.onerror = (err) => reject("Failed to read file.", err);
     reader.readAsArrayBuffer(file);
   });
 };

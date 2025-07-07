@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import { Upload, FileText, Download } from "lucide-react";
+import { Upload } from "lucide-react";
 import UploadProjects from "./UploadProjects";
 import DeleteAllProjects from "./DeleteAllProjects";
 
