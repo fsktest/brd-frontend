@@ -36,6 +36,7 @@ export default function BulkUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isStories, setIsStories] = useState<Group[]>([]);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const [selectedStories, setSelectedStories] = useState<
     { title: string; group: string }[]
   >([]);
@@ -103,7 +104,9 @@ export default function BulkUpload() {
       .flatMap((group) =>
         group.stories
           .filter((story) =>
-            story.title.toLowerCase().includes(storySearch.toLowerCase())
+            (story.title || "")
+              .toLowerCase()
+              .includes((storySearch || "").toLowerCase())
           )
           .map((story) => ({
             title: story.title,
@@ -140,7 +143,23 @@ export default function BulkUpload() {
     }
   };
 
-  const importToJira = () => {
+  // const importToJira = () => {
+  //   const selected = isStories.flatMap((group) =>
+  //     group.stories
+  //       .filter((story) =>
+  //         selectedStories.some(
+  //           (s) => s.title === story.title && s.group === group.application
+  //         )
+  //       )
+  //       .map((story) => ({
+  //         ...story,
+  //         application: group.application,
+  //       }))
+  //   );
+  //   console.log("Importing to Jira:", selected);
+  // };
+
+  const importToJira = async () => {
     const selected = isStories.flatMap((group) =>
       group.stories
         .filter((story) =>
@@ -153,12 +172,60 @@ export default function BulkUpload() {
           application: group.application,
         }))
     );
-    console.log("Importing to Jira:", selected);
+
+    // Group by application (to match API input)
+    const groupedStories = selected.reduce((acc, story) => {
+      const app = story.application;
+      if (!acc[app]) acc[app] = [];
+      acc[app].push({
+        title: story.title,
+        description: story.description,
+        labels: story.labels || [],
+      });
+      return acc;
+    }, {});
+
+    const flattened_stories = Object.entries(groupedStories).map(
+      ([application, stories]) => ({
+        application,
+        stories,
+      })
+    );
+
+    const payload = {
+      flattened_stories,
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/create-stories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cloudid: sessionStorage.getItem("cloudid"), // stored after login
+          Authorization: sessionStorage.getItem("jiraAccessToken"), // stored after login
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.error("Failed to import stories:", data);
+        alert(`Error: ${data.detail || "Unknown error"}`);
+      } else {
+        console.log("Created issues:", data);
+        alert(`${data.total} stories successfully imported to Jira`);
+      }
+    } catch (error) {
+      console.error("Error importing to Jira:", error);
+      alert("Network error during Jira import");
+    }
   };
 
   const filteredProjects = Array.from(
     new Set(isStories.map((s) => s.application))
-  ).filter((p) => p.toLowerCase().includes(projectSearch.toLowerCase()));
+  ).filter((p) =>
+    (p || "").toLowerCase().includes((projectSearch || "").toLowerCase())
+  );
 
   return (
     <>
@@ -214,7 +281,6 @@ export default function BulkUpload() {
       {isStories.length > 0 && (
         <div className="mt-8 w-full">
           <div className="flex items-center gap-4 mb-4 flex-wrap">
-            {/* Project Dropdown */}
             <div className="w-64">
               <Select onValueChange={setSelectedProject} defaultValue="all">
                 <Tooltip>
@@ -261,7 +327,6 @@ export default function BulkUpload() {
               </Select>
             </div>
 
-            {/* Story Search */}
             <div className="w-64">
               <Input
                 type="text"
@@ -271,7 +336,6 @@ export default function BulkUpload() {
               />
             </div>
 
-            {/* Select All */}
             <Button
               variant="outline"
               className={`flex items-center gap-2 border-2 px-4 py-2 ${
@@ -286,7 +350,6 @@ export default function BulkUpload() {
               <Badge variant="secondary">{selectedStories.length}</Badge>
             </Button>
 
-            {/* Import */}
             <Button
               onClick={importToJira}
               disabled={selectedStories.length === 0}
@@ -295,7 +358,6 @@ export default function BulkUpload() {
             </Button>
           </div>
 
-          {/* Story Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {isStories
               .filter(
@@ -306,9 +368,9 @@ export default function BulkUpload() {
               .flatMap((group) =>
                 group.stories
                   .filter((story) =>
-                    story.title
+                    (story.title || "")
                       .toLowerCase()
-                      .includes(storySearch.toLowerCase())
+                      .includes((storySearch || "").toLowerCase())
                   )
                   .map((story) => (
                     <StoryCard

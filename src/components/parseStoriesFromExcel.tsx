@@ -11,6 +11,22 @@ type ParsedStory = {
   stories: Story[];
 };
 
+const REQUIRED_HEADERS = [
+  "Note ID",
+  "Link",
+  "Title",
+  "RAs",
+  "Applications",
+  "Assignments",
+  "All Responsible Assigned",
+  "Note Type",
+  "Flags",
+  "Implementation Complexity",
+  "Training Complexity",
+  "Undelivered SU Note?",
+  "Details",
+];
+
 export const parseStoriesFromExcel = async (
   file: File
 ): Promise<ParsedStory[]> => {
@@ -23,21 +39,45 @@ export const parseStoriesFromExcel = async (
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        const rawJson = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
+        // Normalize headers
+        const cleanedData = rawJson.map((row: any) => {
+          const cleanRow: any = {};
+          Object.keys(row).forEach((key) => {
+            const cleanKey = key.trim();
+            cleanRow[cleanKey] = row[key];
+          });
+          return cleanRow;
+        });
+
+        // Optional: check for missing headers
+        const firstRow = cleanedData[0] || {};
+        const missingHeaders = REQUIRED_HEADERS.filter(
+          (header) => !(header in firstRow)
+        );
+        if (missingHeaders.length > 0) {
+          console.warn("Missing headers:", missingHeaders);
+        }
+
+        // Group stories
         const grouped: Record<string, Story[]> = {};
 
-        json.forEach((row: any) => {
+        cleanedData.forEach((row: any) => {
           const application = row["Applications"]?.trim() || "Unknown App";
           const title = row["Title"]?.trim();
           const description = row["Link"]?.trim();
 
           const labels: string[] = [];
-          ["Flags", "Note Type", "Implementation Complexity"].forEach((field) => {
-            if (row[field]) {
-              labels.push(...row[field].split(",").map((v: string) => v.trim()));
+          ["Flags", "Note Type", "Implementation Complexity"].forEach(
+            (field) => {
+              if (row[field]) {
+                labels.push(
+                  ...row[field].split(",").map((v: string) => v.trim())
+                );
+              }
             }
-          });
+          );
 
           if (!grouped[application]) grouped[application] = [];
           grouped[application].push({ title, description, labels });
@@ -52,11 +92,11 @@ export const parseStoriesFromExcel = async (
 
         resolve(result);
       } catch (err) {
-        reject(err);
+        reject("File could not be parsed. Ensure it's a valid CSV/XLSX.");
       }
     };
 
-    reader.onerror = (err) => reject(err);
+    reader.onerror = (err) => reject("Failed to read file.");
     reader.readAsArrayBuffer(file);
   });
 };

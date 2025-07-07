@@ -1,5 +1,7 @@
 import { Button } from "./ui/button";
 import { Upload, FileText, Download } from "lucide-react";
+import UploadProjects from "./UploadProjects";
+import DeleteAllProjects from "./DeleteAllProjects";
 
 const UploadCard = () => {
   return (
@@ -12,19 +14,9 @@ const UploadCard = () => {
         </span>
       </Button>
 
-      <Button type="button" variant="outline" className="h-24 flex-col gap-1">
-        <FileText className="h-5 w-5" />
-        <span className="text-sm font-medium">Convert Text</span>
-        <span className="text-xs text-muted-foreground">
-          Paste requirements
-        </span>
-      </Button>
+      <UploadProjects />
 
-      <Button type="button" variant="outline" className="h-24 flex-col gap-1">
-        <Download className="h-5 w-5" />
-        <span className="text-sm font-medium">Sample BRD</span>
-        <span className="text-xs text-muted-foreground">Download template</span>
-      </Button>
+      <DeleteAllProjects />
     </div>
   );
 };
