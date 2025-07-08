@@ -80,6 +80,7 @@ export default function ProjectTable({
   const [projectToView, setProjectToView] = React.useState<Project | null>(
     null
   );
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   // const toggleSelectRow = (id: string) => {
   //   setSelectedRows((prev) => {
@@ -92,6 +93,7 @@ export default function ProjectTable({
   const handleDelete = async () => {
     if (!activeProject || !jiraAccessToken || !CLOUDID) return;
 
+    setIsDeleting(true); // ✅ start spinner
     try {
       const formData = new FormData();
       formData.append("token", jiraAccessToken);
@@ -107,7 +109,6 @@ export default function ProjectTable({
 
       if (res.ok) {
         toast.success(`✅ ${result.message}`);
-        // Optionally refresh the project list
         setProjects((prev) =>
           prev.filter((proj) => proj.key !== activeProject.key)
         );
@@ -118,6 +119,7 @@ export default function ProjectTable({
       console.error("Delete error:", err);
       toast.error("Unexpected error occurred while deleting.");
     } finally {
+      setIsDeleting(false); // ✅ stop spinner
       setOpenConfirm(false);
     }
   };
@@ -204,6 +206,7 @@ export default function ProjectTable({
                 className="w-full justify-start text-red-600"
                 onClick={() => {
                   setProjectToDelete(row.original);
+                  setActiveProject(row.original); // ✅ this line is crucial
                   setOpenConfirm(true);
                 }}
               >
@@ -337,8 +340,19 @@ export default function ProjectTable({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-500" onClick={handleDelete}>
-              Yes, Delete
+            <AlertDialogAction
+              className="bg-red-500"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <div className="flex items-center gap-2">
+                  <LoadingSpinner size={16} />
+                  Deleting...
+                </div>
+              ) : (
+                "Yes, Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
