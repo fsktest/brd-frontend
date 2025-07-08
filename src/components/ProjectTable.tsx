@@ -206,7 +206,6 @@ export default function ProjectTable({
                 className="w-full justify-start text-red-600"
                 onClick={() => {
                   setProjectToDelete(row.original);
-                  setActiveProject(row.original); // ✅ this line is crucial
                   setOpenConfirm(true);
                 }}
               >
