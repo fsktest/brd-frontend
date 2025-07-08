@@ -9,6 +9,7 @@ import Register from "./Pages/Register";
 import "./index.css";
 import JiraSuccess from "./Pages/JiraSuccess";
 import BulkUpload from "./Pages/BulkUpload";
+import Stories from "./Pages/Stories";
 
 // Protect routes that require authentication
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -30,7 +31,7 @@ const App = () => {
         <Route index element={<Home />} />
         <Route path="/issue" element={<Issue />} />
         <Route path="/bulk-upload" element={<BulkUpload />} />
-        {/* <Route path="/stories" element={<Stories />} /> */}
+        <Route path="/stories" element={<Stories />} />
         <Route path="/jira-success" element={<JiraSuccess />} />
       </Route>
       <Route path="/login" element={<Login />} />

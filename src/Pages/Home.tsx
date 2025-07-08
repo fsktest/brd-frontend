@@ -35,7 +35,7 @@ const Home = () => {
   const [CLOUDID, setCLOUDID] = useState<string | null>(null);
   const [jiraAccessToken, setJiraAccessToken] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -111,7 +111,7 @@ const Home = () => {
         console.error("Error fetching projects:", err);
         setProjects([]);
       } finally {
-        setLoading(false);
+        // setLoading(false);
       }
     };
 
@@ -150,14 +150,14 @@ const Home = () => {
   ];
 
   return (
-    <div className="px-4">
+    <div className="px-2">
       <div className="flex justify-between my-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
           <p>Convert business requirements into actionable user stories</p>
         </div>
         <Button
-          className="rounded"
+          className="rounded2"
           disabled={isConnected}
           onClick={jiraConnect}
         >
@@ -175,7 +175,14 @@ const Home = () => {
       <div className="py-6">
         <h1 className="text-2xl font-semibold mb-6">Projects</h1>
         {jiraAccessToken && CLOUDID ? (
-          <ProjectTable data={projects} isLoading={loading} />
+          <ProjectTable
+            data={projects}
+            isLoading={false}
+            jiraAccessToken={jiraAccessToken}
+            CLOUDID={CLOUDID}
+            API_BASE_URL={API_BASE_URL}
+            setProjects={setProjects}
+          />
         ) : (
           <div>
             <h1>Please connect to Jira</h1>

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { CgLogOut } from "react-icons/cg";
-import { SearchForm } from "@/components/search-form";
+// import { SearchForm } from "@/components/search-form";
 import { VersionSwitcher } from "@/components/version-switcher";
 import {
   Sidebar,
@@ -35,10 +35,10 @@ const data = {
           title: "Bulk Upload",
           url: "/bulk-upload",
         },
-        // {
-        //   title: "Create Stories",
-        //   url: "/stories",
-        // },
+        {
+          title: "Create Stories",
+          url: "/stories",
+        },
       ],
     },
   ],
@@ -48,12 +48,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const logout = useAuthStore((state) => state.logout);
   return (
     <Sidebar {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="">
         <VersionSwitcher
           versions={data.versions}
           defaultVersion={data.versions[0]}
         />
-        <SearchForm />
+        {/* <SearchForm /> */}
       </SidebarHeader>
       <SidebarContent>
         {/* We create a SidebarGroup for each parent. */}
