@@ -339,7 +339,7 @@ export default function ProjectTable({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <Button
               className="bg-red-500"
               onClick={handleDelete}
               disabled={isDeleting}
@@ -347,12 +347,12 @@ export default function ProjectTable({
               {isDeleting ? (
                 <div className="flex items-center gap-2">
                   <LoadingSpinner size={16} />
-                  Deleting...
+                  Deleting
                 </div>
               ) : (
                 "Yes, Delete"
               )}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
