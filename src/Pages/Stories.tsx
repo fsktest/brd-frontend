@@ -5,75 +5,49 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { Upload } from "lucide-react";
 
 const Stories = () => {
+  const [mode, setMode] = useState<"text" | "document">("text");
   const [input, setInput] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [storyCount, setStoryCount] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [rawJson, setRawJson] = useState("");
   const [stories, setStories] = useState<any[]>([]);
   const [showCards, setShowCards] = useState(false);
   const [error, setError] = useState("");
+  const [dragActive, setDragActive] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-  //   const handleGenerate = async () => {
-  //     setIsLoading(true);
-  //     setRawJson("");
-  //     setStories([]);
-  //     setShowCards(false);
-  //     setError("");
-  //     controllerRef.current = new AbortController();
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
 
-  //     try {
-  //       const response = await fetch(
-  //         `${API_BASE_URL}/generate-jira-story-stream`,
-  //         {
-  //           method: "POST",
-  //           headers: { "Content-Type": "application/json" },
-  //           body: JSON.stringify({ user_input: input, story_count: storyCount }),
-  //           signal: controllerRef.current.signal,
-  //         }
-  //       );
-
-  //       if (!response.body) throw new Error("No response body");
-
-  //       const reader = response.body.getReader();
-  //       let jsonString = "";
-  //       let done = false;
-
-  //       while (!done) {
-  //         const { value, done: doneReading } = await reader.read();
-  //         if (value) {
-  //           const chunk = new TextDecoder().decode(value);
-  //           jsonString += chunk;
-  //           setRawJson((prev) => prev + chunk);
-  //         }
-  //         done = doneReading;
-  //       }
-
-  //       try {
-  //         // Ensure string ends with `}` before parsing
-  //         const sanitized = jsonString.trim();
-
-  //         // Try to parse the cleaned JSON
-  //         const parsed = JSON.parse(sanitized);
-
-  //         if (parsed && parsed.user_stories) {
-  //           setStories(parsed.user_stories);
-  //           setShowCards(true);
-  //         } else {
-  //           throw new Error("Invalid structure");
-  //         }
-  //       } catch (e) {
-  //         console.error("JSON Parse Error:", e);
-  //         setError("Failed to parse generated JSON.");
-  //       }
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
+  const handleClick = () => inputRef.current?.click();
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files?.[0]) {
+      setFile(e.dataTransfer.files[0]);
+    }
+  };
 
   const handleGenerate = async () => {
     setIsLoading(true);
@@ -84,15 +58,35 @@ const Stories = () => {
     controllerRef.current = new AbortController();
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/generate-jira-story-stream`,
-        {
+      let response;
+
+      if (mode === "text") {
+        response = await fetch(`${API_BASE_URL}/generate-jira-story-stream`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_input: input, story_count: storyCount }),
           signal: controllerRef.current.signal,
+        });
+      } else {
+        if (!file) {
+          setError("Please upload a document file.");
+          setIsLoading(false);
+          return;
         }
-      );
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("story_count", storyCount.toString());
+
+        response = await fetch(
+          `${API_BASE_URL}/generate-jira-story-from-file`,
+          {
+            method: "POST",
+            body: formData,
+            signal: controllerRef.current.signal,
+          }
+        );
+      }
 
       if (!response.body) throw new Error("No response body");
 
@@ -111,13 +105,11 @@ const Stories = () => {
         done = doneReading;
       }
 
-      // Fix common streaming issues
       let cleanedJson = jsonString
-        .replace(/,\s*([\]}])/g, "$1") // remove trailing commas
-        .replace(/(\r\n|\n|\r)/gm, "") // remove line breaks
+        .replace(/,\s*([\]}])/g, "$1")
+        .replace(/(\r\n|\n|\r)/gm, "")
         .trim();
 
-      // Attempt to fix unclosed array or object
       if (!cleanedJson.endsWith("}")) {
         if (cleanedJson.lastIndexOf("]") > cleanedJson.lastIndexOf("}")) {
           cleanedJson += `, "meta": {"message": "Partial stream"}}`;
@@ -126,14 +118,7 @@ const Stories = () => {
         }
       }
 
-      // Defensive parse
-      let parsed;
-      try {
-        parsed = JSON.parse(cleanedJson);
-      } catch (e) {
-        console.error("JSON parse failed. Partial response:", cleanedJson);
-        throw e;
-      }
+      const parsed = JSON.parse(cleanedJson);
       setStories(parsed.user_stories || []);
       setShowCards(true);
     } catch (err: any) {
@@ -145,26 +130,74 @@ const Stories = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold">Generate Jira User Stories</h2>
+        <h2 className="text-3xl font-bold">Generate Jira User Stories</h2>
         <p className="text-sm text-muted-foreground">
-          Enter your requirement and number of stories to generate detailed Jira
-          user stories.
+          Choose how you want to generate user stories – from a requirement text
+          or by uploading a document.
         </p>
       </div>
 
+      <Tabs
+        value={mode}
+        onValueChange={(val) => setMode(val as "text" | "document")}
+      >
+        <TabsList className="mb-4">
+          <TabsTrigger value="text">Text-based</TabsTrigger>
+          <TabsTrigger value="document">Document-based</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="grid gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="requirement">Requirement</Label>
-          <Textarea
-            id="requirement"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g. Build a school management system with modules for students, teachers, etc."
-            rows={4}
-          />
-        </div>
+        {mode === "text" ? (
+          <div className="grid gap-2">
+            <Label htmlFor="requirement">Requirement</Label>
+            <Textarea
+              id="requirement"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="e.g. Build a school management system with attendance, grading, and timetable modules..."
+              rows={6}
+              className="text-base"
+            />
+          </div>
+        ) : (
+          <>
+            <Input
+              ref={inputRef}
+              type="file"
+              multiple={false}
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <div
+              onClick={handleClick}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              className={`group relative mt-2 border-2 border-dashed rounded-md transition-colors duration-300 ease-in-out cursor-pointer w-full p-6 text-center hover:border-blue-400 hover:bg-blue-50 ${
+                dragActive ? "border-blue-500 bg-blue-100" : "border-gray-300"
+              }`}
+            >
+              <div className="flex flex-col items-center justify-center space-y-2">
+                <div className="rounded-full bg-blue-100 p-3 group-hover:scale-110 transition-transform duration-300">
+                  <Upload size={28} className="text-blue-600" />
+                </div>
+                <p className="text-sm text-gray-700 font-medium">
+                  Click or drag file to upload
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Supported: PDF, DOCX, TXT
+                </p>
+                {file && (
+                  <p className="mt-2 text-sm font-semibold">{file.name}</p>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
           <div className="grid gap-2">
@@ -181,7 +214,7 @@ const Stories = () => {
 
           <Button
             onClick={handleGenerate}
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || (mode === "text" ? !input.trim() : !file)}
             className="w-full"
           >
             {isLoading ? (

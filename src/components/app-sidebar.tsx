@@ -75,7 +75,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         ))}
       </SidebarContent>
-      <SidebarFooter>
+      {/* <SidebarFooter>
         <Button
           variant="destructive"
           className="w-full rounded flex items-center "
@@ -85,7 +85,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         >
           <span>Logout</span> <CgLogOut size={20} className="text-white" />
         </Button>
-      </SidebarFooter>
+      </SidebarFooter> */}
       <SidebarRail />
     </Sidebar>
   );
