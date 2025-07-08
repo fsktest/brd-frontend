@@ -97,7 +97,7 @@ export const parseStoriesFromExcel = async (
       }
     };
 
-    reader.onerror = (err) => reject("Failed to read file.", err);
+    reader.onerror = () => reject("Failed to read file.");
     reader.readAsArrayBuffer(file);
   });
 };

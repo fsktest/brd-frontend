@@ -23,6 +23,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 type Story = {
   title: string;
   description?: string;
+  labels?: string[];
   [key: string]: any;
 };
 
