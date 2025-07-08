@@ -63,7 +63,7 @@ export default function ProjectTable({
   API_BASE_URL,
   setProjects,
 }: ProjectTableProps) {
-  const [selectedRows /* , setSelectedRows */] = React.useState<Set<string>>(
+  const [selectedRows, setSelectedRows] = React.useState<Set<string>>(
     new Set()
   );
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -73,8 +73,9 @@ export default function ProjectTable({
   const [projectToDelete, setProjectToDelete] = React.useState<Project | null>(
     null
   );
-  const [activeProject /* , setActiveProject */] =
-    React.useState<Project | null>(null);
+  const [activeProject, setActiveProject] = React.useState<Project | null>(
+    null
+  );
 
   const [openViewDialog, setOpenViewDialog] = React.useState(false);
   const [projectToView, setProjectToView] = React.useState<Project | null>(
@@ -82,16 +83,11 @@ export default function ProjectTable({
   );
   const [isDeleting, setIsDeleting] = React.useState(false);
 
-  // const toggleSelectRow = (id: string) => {
-  //   setSelectedRows((prev) => {
-  //     const copy = new Set(prev);
-  //     copy.has(id) ? copy.delete(id) : copy.add(id);
-  //     return copy;
-  //   });
-  // };
-
   const handleDelete = async () => {
-    if (!activeProject || !jiraAccessToken || !CLOUDID) return;
+    if (!activeProject || !jiraAccessToken || !CLOUDID) {
+      toast.error("Missing required information to delete project.");
+      return;
+    }
 
     setIsDeleting(true); // ✅ start spinner
     try {
@@ -121,6 +117,8 @@ export default function ProjectTable({
     } finally {
       setIsDeleting(false); // ✅ stop spinner
       setOpenConfirm(false);
+      setProjectToDelete(null);
+      setActiveProject(null);
     }
   };
 
@@ -207,6 +205,7 @@ export default function ProjectTable({
                 onClick={() => {
                   setProjectToDelete(row.original);
                   setOpenConfirm(true);
+                  setActiveProject(row.original); // ✅ CRITICAL
                 }}
               >
                 Delete
@@ -331,31 +330,40 @@ export default function ProjectTable({
       </div>
 
       {/* Alert Dialog for Deletion */}
-      <AlertDialog open={openConfirm} onOpenChange={setOpenConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            Are you sure you want to delete{" "}
-            <span className="font-semibold">{projectToDelete?.name}</span>?
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <Dialog open={openConfirm} onOpenChange={setOpenConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <h2 className="text-lg font-semibold text-red-600">
+              Confirm Deletion
+            </h2>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>
+              Are you sure you want to delete{" "}
+              <span className="font-semibold">{projectToDelete?.name}</span>?
+            </p>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button variant="outline" onClick={() => setOpenConfirm(false)}>
+              Cancel
+            </Button>
             <Button
-              className="bg-red-500"
+              variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
             >
               {isDeleting ? (
                 <div className="flex items-center gap-2">
                   <LoadingSpinner size={16} />
-                  Deleting
+                  Deleting...
                 </div>
               ) : (
                 "Yes, Delete"
               )}
             </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={openViewDialog} onOpenChange={setOpenViewDialog}>
         <DialogContent>
