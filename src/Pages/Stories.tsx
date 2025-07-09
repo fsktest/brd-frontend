@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,15 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { Upload } from "lucide-react";
+import StoryCard from "@/components/StoryCard";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 const Stories = () => {
   const [mode, setMode] = useState<"text" | "document">("text");
@@ -15,14 +24,33 @@ const Stories = () => {
   const [file, setFile] = useState<File | null>(null);
   const [storyCount, setStoryCount] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
-  const [rawJson, setRawJson] = useState("");
   const [stories, setStories] = useState<any[]>([]);
   const [showCards, setShowCards] = useState(false);
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [selectedStories, setSelectedStories] = useState<any[]>([]);
+  const [isSelectAll, setIsSelectAll] = useState(false);
+  const [projectSearch, setProjectSearch] = useState("");
+  const [storySearch, setStorySearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const [CLOUDID, setCLOUDID] = useState<string | null>(null);
+  const [jiraAccessToken, setJiraAccessToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("jiraAccessToken");
+    const cloudid = sessionStorage.getItem("cloudid");
+
+    if (token && cloudid) {
+      setCLOUDID(cloudid);
+      setJiraAccessToken(token);
+    } else {
+      console.log("Token expired or invalid");
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -51,7 +79,6 @@ const Stories = () => {
 
   const handleGenerate = async () => {
     setIsLoading(true);
-    setRawJson("");
     setStories([]);
     setShowCards(false);
     setError("");
@@ -100,32 +127,139 @@ const Stories = () => {
         if (value) {
           const chunk = decoder.decode(value, { stream: true });
           jsonString += chunk;
-          setRawJson((prev) => prev + chunk);
         }
         done = doneReading;
       }
 
-      let cleanedJson = jsonString
-        .replace(/,\s*([\]}])/g, "$1")
-        .replace(/(\r\n|\n|\r)/gm, "")
-        .trim();
-
-      if (!cleanedJson.endsWith("}")) {
-        if (cleanedJson.lastIndexOf("]") > cleanedJson.lastIndexOf("}")) {
-          cleanedJson += `, "meta": {"message": "Partial stream"}}`;
-        } else {
-          cleanedJson += `]}`;
-        }
+      // Clean and parse JSON
+      try {
+        const parsed = JSON.parse(jsonString.trim());
+        setStories(parsed.user_stories || []);
+        setShowCards(true);
+      } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        setError("Failed to parse generated stories. Please try again.");
       }
-
-      const parsed = JSON.parse(cleanedJson);
-      setStories(parsed.user_stories || []);
-      setShowCards(true);
     } catch (err: any) {
-      console.error("Error while parsing stream:", err);
-      setError("Failed to parse generated JSON.");
+      console.error("Error during generation:", err);
+      setError("An error occurred while generating stories.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Fetch Jira projects after stories are generated
+  useEffect(() => {
+    if (showCards && stories.length > 0) {
+      fetchProjects();
+    }
+    // eslint-disable-next-line
+  }, [showCards, stories]);
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/get-projects`, {
+        method: "POST",
+        headers: {
+          cloudid: CLOUDID as string,
+          authorization: jiraAccessToken as string,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+      if (data?.projects?.length) {
+        setProjects(data.projects);
+      } else {
+        setProjects([]);
+      }
+    } catch (err) {
+      console.error("Error fetching projects:", err);
+      setProjects([]);
+    }
+  };
+
+  // Story selection logic
+  const handleStorySelect = (story: any) => {
+    const exists = selectedStories.find((s) => s.title === story.title);
+    setSelectedStories((prev) =>
+      exists ? prev.filter((s) => s.title !== story.title) : [...prev, story]
+    );
+  };
+
+  const isSelected = (story: any) =>
+    selectedStories.some((s) => s.title === story.title);
+
+  const handleSelectAllToggle = () => {
+    const filtered = filteredStories();
+    const allSelected = filtered.every((story) =>
+      selectedStories.some((s) => s.title === story.title)
+    );
+    if (allSelected) {
+      setSelectedStories((prev) =>
+        prev.filter((s) => !filtered.some((f) => f.title === s.title))
+      );
+      setIsSelectAll(false);
+    } else {
+      const updated = [
+        ...selectedStories,
+        ...filtered.filter(
+          (f) => !selectedStories.some((s) => s.title === f.title)
+        ),
+      ];
+      setSelectedStories(updated);
+      setIsSelectAll(true);
+    }
+  };
+
+  const filteredProjects = projects.filter((p) =>
+    (p.name || "").toLowerCase().includes((projectSearch || "").toLowerCase())
+  );
+
+  const filteredStories = () =>
+    stories
+      .filter(
+        (story) =>
+          selectedProject === "all" || story.projectKey === selectedProject
+      )
+      .filter((story) =>
+        (story.title || "")
+          .toLowerCase()
+          .includes((storySearch || "").toLowerCase())
+      );
+
+  const importToJira = async () => {
+    if (!selectedProject || selectedStories.length === 0) return;
+
+    try {
+      const payload = {
+        projectKey: selectedProject,
+        stories: selectedStories,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/create-stories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cloudid: CLOUDID,
+          Authorization: jiraAccessToken,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.detail || "Failed to import stories to Jira.");
+      } else {
+        setSelectedStories([]);
+        alert(
+          `${data.total || selectedStories.length} stories imported to Jira!`
+        );
+      }
+    } catch (error) {
+      console.error("Import to Jira error:", error);
+      setError("Network error during Jira import");
     }
   };
 
@@ -230,67 +364,90 @@ const Stories = () => {
 
         {error && <div className="text-red-500 text-sm">{error}</div>}
 
-        {rawJson && (
-          <div className="grid gap-2">
-            <Label>Generated JSON</Label>
-            <Textarea
-              className="bg-muted text-xs h-48 overflow-auto"
-              value={rawJson}
-              readOnly
-            />
-          </div>
-        )}
-
-        {stories.length > 0 && (
-          <div className="flex justify-end">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="view-toggle"
-                checked={showCards}
-                onCheckedChange={() => setShowCards((prev) => !prev)}
-              />
-              <Label htmlFor="view-toggle">Show Cards</Label>
-            </div>
-          </div>
-        )}
-
+        {/* Only show cards and project selection after generation */}
         {showCards && stories.length > 0 && (
-          <div className="grid gap-4">
-            {stories.map((story, idx) => (
-              <Card key={idx}>
-                <CardHeader>
-                  <CardTitle>{story.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-1">
-                  <p className="text-muted-foreground">{story.summary}</p>
-                  <p>
-                    <strong>Type:</strong> {story.story_type}
-                  </p>
-                  <p>
-                    <strong>Priority:</strong> {story.priority}
-                  </p>
-                  <p>
-                    <strong>Points:</strong> {story.story_points}
-                  </p>
-                  <p>
-                    <strong>Labels:</strong> {(story.labels || []).join(", ")}
-                  </p>
-                  <p>
-                    <strong>Description:</strong> {story.description}
-                  </p>
-                  <div>
-                    <strong>Acceptance Criteria:</strong>
-                    <ul className="list-disc ml-6">
-                      {(story.acceptance_criteria || []).map(
-                        (ac: string, i: number) => (
-                          <li key={i}>{ac}</li>
-                        )
-                      )}
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="mt-8 w-full">
+            <div className="flex items-center gap-4 mb-4 flex-wrap">
+              <div className="w-64">
+                <Select onValueChange={setSelectedProject} defaultValue="all">
+                  <SelectTrigger className="truncate max-w-full overflow-hidden whitespace-nowrap">
+                    <SelectValue
+                      placeholder="Select Project"
+                      className="truncate"
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="w-[30rem]">
+                    <div className="p-2 sticky top-0 z-10 bg-white">
+                      <Input
+                        type="text"
+                        value={projectSearch}
+                        placeholder="Search project..."
+                        className="w-full focus:ring-0"
+                        onChange={(e) => setProjectSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      <SelectItem value="all" className="truncate">
+                        All Projects
+                      </SelectItem>
+                      {filteredProjects.map((project) => (
+                        <SelectItem
+                          key={project.key || project.id}
+                          value={project.key}
+                          className="truncate whitespace-nowrap"
+                        >
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </div>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-64">
+                <Input
+                  type="text"
+                  placeholder="Search stories..."
+                  value={storySearch}
+                  onChange={(e) => setStorySearch(e.target.value)}
+                />
+              </div>
+
+              <Button
+                variant="outline"
+                className={`flex items-center gap-2 border-2 px-4 py-2 ${
+                  isSelectAll
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-gray-300 text-gray-700"
+                }`}
+                onClick={handleSelectAllToggle}
+              >
+                <input type="checkbox" checked={isSelectAll} readOnly />
+                {isSelectAll ? "Deselect All" : "Select All"}
+                <Badge variant="secondary">{selectedStories.length}</Badge>
+              </Button>
+
+              <Button
+                onClick={importToJira}
+                disabled={
+                  selectedStories.length === 0 || selectedProject === "all"
+                }
+              >
+                Import to Jira
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {filteredStories().map((story, idx) => (
+                <StoryCard
+                  key={story.title + idx}
+                  story={story}
+                  group={{ application: story.projectKey || selectedProject }}
+                  selected={isSelected(story)}
+                  onSelect={() => handleStorySelect(story)}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
