@@ -80,7 +80,6 @@ const Stories = () => {
   };
 
   const handleGenerate = async () => {
-    setImportJiraLoading(true);
     setIsLoading(true);
     setStories([]);
     setShowCards(false);
@@ -150,7 +149,6 @@ const Stories = () => {
       toast.error("An error occurred while generating stories.");
     } finally {
       setIsLoading(false);
-      setImportJiraLoading(false);
     }
   };
 
@@ -238,6 +236,7 @@ const Stories = () => {
 
   const importToJira = async () => {
     if (!selectedProject || selectedStories.length === 0) return;
+    setImportJiraLoading(true);
 
     try {
       const payload = {
@@ -269,6 +268,7 @@ const Stories = () => {
         toast.error(data.detail || "Failed to import stories to Jira.");
       } else {
         setSelectedStories([]);
+        setImportJiraLoading(false);
         // alert(
         //   `${data.total || selectedStories.length} stories imported to Jira!`
         // );
@@ -278,6 +278,7 @@ const Stories = () => {
       }
     } catch (error) {
       console.error("Import to Jira error:", error);
+      setImportJiraLoading(false);
       // setError("Network error during Jira import");
       toast.error("Network error during Jira import");
     }
