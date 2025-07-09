@@ -84,7 +84,7 @@ const UploadProjects = () => {
           <FileText className="h-5 w-5" />
         )}
         <span className="text-sm font-medium">
-          {isUploading ? "Uploading..." : "Upload Projects in Bulk"}
+          {isUploading ? "Creating Projects..." : "Create Projects in Bulk"}
         </span>
         <span className="text-xs text-muted-foreground">CSV, XLSX</span>
       </Button>
