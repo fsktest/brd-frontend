@@ -216,25 +216,34 @@ const Stories = () => {
     (p.name || "").toLowerCase().includes((projectSearch || "").toLowerCase())
   );
 
-  const filteredStories = () =>
-    stories
-      .filter(
-        (story) =>
-          selectedProject === "all" || story.projectKey === selectedProject
+  const filteredStories = () => {
+    return stories
+      .map((story) =>
+        selectedProject === "all"
+          ? story
+          : { ...story, projectKey: selectedProject }
       )
       .filter((story) =>
         (story.title || "")
           .toLowerCase()
           .includes((storySearch || "").toLowerCase())
       );
+  };
 
   const importToJira = async () => {
     if (!selectedProject || selectedStories.length === 0) return;
 
     try {
       const payload = {
-        projectKey: selectedProject,
-        stories: selectedStories,
+        flattened_stories: [
+          {
+            application: selectedProject,
+            stories: selectedStories.map((s) => ({
+              ...s,
+              projectKey: selectedProject, // ensure it's included
+            })),
+          },
+        ],
       };
 
       const response = await fetch(`${API_BASE_URL}/create-stories`, {
