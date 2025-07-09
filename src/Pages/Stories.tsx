@@ -17,6 +17,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 const Stories = () => {
   const [mode, setMode] = useState<"text" | "document">("text");
@@ -39,6 +40,7 @@ const Stories = () => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const [CLOUDID, setCLOUDID] = useState<string | null>(null);
   const [jiraAccessToken, setJiraAccessToken] = useState<string | null>(null);
+  const [importJiraLoading, setImportJiraLoading] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("jiraAccessToken");
@@ -78,6 +80,7 @@ const Stories = () => {
   };
 
   const handleGenerate = async () => {
+    setImportJiraLoading(true);
     setIsLoading(true);
     setStories([]);
     setShowCards(false);
@@ -136,15 +139,18 @@ const Stories = () => {
         const parsed = JSON.parse(jsonString.trim());
         setStories(parsed.user_stories || []);
         setShowCards(true);
+        toast.success("Stories generated successfully.");
       } catch (err) {
-        console.error("Failed to parse JSON:", err);
-        setError("Failed to parse generated stories. Please try again.");
+        // console.error("Failed to parse JSON:", err);
+        // setError("Failed to parse generated stories. Please try again.");
+        toast.error("Failed to parse generated stories. Please try again.");
       }
     } catch (err: any) {
       console.error("Error during generation:", err);
-      setError("An error occurred while generating stories.");
+      toast.error("An error occurred while generating stories.");
     } finally {
       setIsLoading(false);
+      setImportJiraLoading(false);
     }
   };
 
@@ -259,16 +265,21 @@ const Stories = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.detail || "Failed to import stories to Jira.");
+        // setError(data.detail || "Failed to import stories to Jira.");
+        toast.error(data.detail || "Failed to import stories to Jira.");
       } else {
         setSelectedStories([]);
-        alert(
+        // alert(
+        //   `${data.total || selectedStories.length} stories imported to Jira!`
+        // );
+        toast.success(
           `${data.total || selectedStories.length} stories imported to Jira!`
         );
       }
     } catch (error) {
       console.error("Import to Jira error:", error);
-      setError("Network error during Jira import");
+      // setError("Network error during Jira import");
+      toast.error("Network error during Jira import");
     }
   };
 
@@ -439,10 +450,21 @@ const Stories = () => {
               <Button
                 onClick={importToJira}
                 disabled={
-                  selectedStories.length === 0 || selectedProject === "all"
+                  selectedStories.length === 0 ||
+                  selectedProject === "all" ||
+                  importJiraLoading
                 }
               >
-                Import to Jira
+                {importJiraLoading ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner />
+                      <h1>Importing...</h1>
+                    </div>
+                  </>
+                ) : (
+                  "Import to Jira"
+                )}
               </Button>
             </div>
 
