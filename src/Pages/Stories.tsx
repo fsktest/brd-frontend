@@ -107,14 +107,12 @@ const Stories = () => {
         formData.append("file", file);
         formData.append("story_count", storyCount.toString());
 
-        response = await fetch(
-          `${API_BASE_URL}/generate-jira-story-from-file`,
-          {
-            method: "POST",
-            body: formData,
-            signal: controllerRef.current.signal,
-          }
-        );
+        // Use the new API endpoint for document upload
+        response = await fetch(`${API_BASE_URL}/generate-stories-from-doc`, {
+          method: "POST",
+          body: formData,
+          signal: controllerRef.current.signal,
+        });
       }
 
       if (!response.body) throw new Error("No response body");
